@@ -18,17 +18,23 @@
 
 package org.jruby.cext;
 
+import java.lang.Class;
+import java.lang.reflect.Field;
 import com.kenai.jffi.Library;
 import org.jruby.Ruby;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
+
+import java.lang.NoSuchFieldException;
+import java.lang.IllegalAccessException;
 
 
 final class Native {
     private static Native INSTANCE;
     private static Library shim = null; // keep a hard ref to avoid GC
 
-    public synchronized static final Native getInstance(Ruby runtime) {
+    public synchronized static final Native getInstance(Ruby runtime)
+            throws IllegalAccessException, NoSuchFieldException {
         if (INSTANCE == null) {
             INSTANCE = new Native();
             INSTANCE.load(runtime);
@@ -38,20 +44,39 @@ final class Native {
     }
 
 
-    private void load(Ruby runtime) {
+    private void load(Ruby runtime) throws NoSuchFieldException, IllegalAccessException {
 
         // Force the shim library to load into the global namespace
         if ((shim = Library.openLibrary(System.mapLibraryName("jruby-cext"), Library.NOW | Library.GLOBAL)) == null) {
             throw new UnsatisfiedLinkError("failed to load shim library, error: " + Library.getLastError());
         }
-        
-        System.loadLibrary("jruby-cext");
-        // Register Qfalse, Qtrue, Qnil constants to avoid reverse lookups in native code
-        GC.register(runtime.getFalse(), new Handle(runtime, getFalse()));
-        GC.register(runtime.getTrue(), new Handle(runtime, getTrue()));
-        GC.register(runtime.getNil(), new Handle(runtime, getNil()));
 
-        initNative(runtime);        
+        Class clazz = ClassLoader.class;        
+        Field field = clazz.getDeclaredField("sys_paths");        
+        boolean accessible = field.isAccessible();
+        if (!accessible) field.setAccessible(true);
+        Object original = field.get(clazz);
+        // Reset it to null so that whenever "System.loadLibrary" is called, 
+        // it will be reconstructed with the changed value. Dirty, I know
+        //field.set(clazz, null);
+        try {
+            // Change the value and load the library.
+            System.setProperty("java.library.path", 
+                    runtime.getInstanceConfig().getJRubyHome() + "/lib/ruby/cext");
+            System.out.println("java.library.path: " + System.getProperty("java.library.path"));
+
+            System.loadLibrary("jruby-cext");
+            // Register Qfalse, Qtrue, Qnil constants to avoid reverse lookups in native code
+            GC.register(runtime.getFalse(), new Handle(runtime, getFalse()));
+            GC.register(runtime.getTrue(), new Handle(runtime, getTrue()));
+            GC.register(runtime.getNil(), new Handle(runtime, getNil()));
+
+            initNative(runtime);
+        } finally {
+            //Revert back the changes to the java.library.path
+            field.set(clazz, original);
+            field.setAccessible(accessible);
+        }
     }
 
 
