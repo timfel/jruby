@@ -71,7 +71,7 @@ final class Native {
         GC.register(runtime.getTrue(), new Handle(runtime, getTrue()));
         GC.register(runtime.getNil(), new Handle(runtime, getNil()));
 
-        initNative(runtime);        
+        initNative(runtime);
     }
     
     private File loadFromJrubyHome() {
@@ -139,13 +139,15 @@ final class Native {
      * @return The path in the jar file.
      */
     private static final String getCextLibraryPath() {
-        //return "/cext/" + Platform.getPlatform().getName() + "/"+ System.mapLibraryName(libName);
-        String prefix = "/cext/build/";
+        String prefix = Platform.getPlatform().getName() + "/";
         if (jrubyHome.startsWith("file:")) {
             // jrubyHome is in Jar file
             prefix = jrubyHome.substring(jrubyHome.indexOf("jar!") + "jar!".length()) + prefix;
+        } else {
+            // jrubyHome is in src tree
+            prefix = "/lib/native/" + prefix;
         }
-        return prefix + System.mapLibraryName(libName);        
+        return prefix + System.mapLibraryName(libName);
     }
 
     private final native void initNative(Ruby runtime);

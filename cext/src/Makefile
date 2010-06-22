@@ -40,12 +40,15 @@ export MACOSX_DEPLOYMENT_TARGET=10.4
 CCACHE := $(strip $(realpath $(shell which ccache 2> /dev/null)))
 SRC_DIR ?= $(shell pwd)
 JNI_DIR ?= $(SRC_DIR)
-BUILD_DIR ?= $(SRC_DIR)/../build/
+JRUBY_NATIVE_DIR ?= $(JRUBY_BASEDIR)/lib/native/
+BUILD_DIR ?= $(JRUBY_NATIVE_DIR)$(PLATFORM)
+HDR_DIR ?= $(JRUBY_NATIVE_DIR)
+RUBY_H ?= $(HDR_DIR)/ruby.h
 
 SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst %.c, $(BUILD_DIR)/%.o, $(notdir $(SRCS)))
+OBJS = $(patsubst %.c, $(SRC_DIR)/%.o, $(notdir $(SRCS)))
 
-CXXOBJS += $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(notdir $(wildcard $(SRC_DIR)/*.cpp)))
+CXXOBJS += $(patsubst %.cpp, $(SRC_DIR)/%.o, $(notdir $(wildcard $(SRC_DIR)/*.cpp)))
 
 vpath %.h $(SRC_DIR)
 
@@ -129,7 +132,7 @@ endif
 ifeq ($(OS), darwin)
   MACSDK = /Developer/SDKs/MacOSX10.5.sdk
   JDK_INCLUDES = -I$(MACSDK)/System/Library/Frameworks/JavaVM.framework/Headers
-  PLATFORM = darwin
+  PLATFORM = Darwin
   ARCHES = ppc
   ifneq ($(findstring $(CPU), i386 x86_64),)
     ARCHES= i386 x86_64
@@ -205,7 +208,7 @@ ifneq ($(strip $(findstring $(OS), linux solaris)),)
 endif
 
 
-JAVA_HDRS = $(patsubst %.h, $(BUILD_DIR)/%.h, org_jruby_cext_Native.h org_jruby_cext_GC.h  org_jruby_runtime_ClassIndex.h)
+JAVA_HDRS = $(patsubst %.h, $(SRC_DIR)/%.h, org_jruby_cext_Native.h org_jruby_cext_GC.h  org_jruby_runtime_ClassIndex.h)
 
 all:	$(LIBCEXT)
 
@@ -222,20 +225,20 @@ debug:
 	@echo "PLATFORM=$(PLATFORM)"
 	@echo "OBJS=$(OBJS)"
 
-$(LIBCEXT):  $(OBJS) $(CXXOBJS) $(BUILD_DIR)/ruby.h
+$(LIBCEXT):  $(OBJS) $(CXXOBJS) $(RUBY_H)
 	$(CXX) -o $@ $(LDFLAGS) $(SOFLAGS) $(OBJS) $(CXXOBJS) $(LIBS)
 	
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(wildcard $(SRC_DIR)/*.h) $(JAVA_HDRS)
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.c $(wildcard $(SRC_DIR)/*.h) $(JAVA_HDRS)
 	@mkdir -p $(@D)
 	$(CCACHE) $(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp  $(wildcard $(SRC_DIR)/*.h) $(JAVA_HDRS)
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp  $(wildcard $(SRC_DIR)/*.h) $(JAVA_HDRS)
 	@mkdir -p $(@D)
 	$(CCACHE) $(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/ruby.h: $(SRC_DIR)/ruby.h
-	@cp $(SRC_DIR)/ruby.h $(BUILD_DIR)/ruby.h
+$(RUBY_H): $(SRC_DIR)/ruby.h
+	@cp $(SRC_DIR)/ruby.h $(RUBY_H)
 
 .SECONDARY: $(JAVA_HDRS)
 
@@ -245,6 +248,8 @@ $(JAVA_HDRS):
 
 
 .PHONY: clean
-clean:
-	$(RM) -rf $(BUILD_DIR)
+clean: dist-clean
+	$(RM) $(LIBCEXT)
 
+dist-clean:
+	$(RM) $(OBJS) $(JAVA_HDRS) $(CXXOBJS) 
