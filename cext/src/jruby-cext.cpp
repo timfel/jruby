@@ -113,6 +113,7 @@ namespace jruby {
     jmethodID Handle_nativeHandle;
     jmethodID Ruby_getCurrentContext_method;
     jmethodID GC_trigger;
+    jmethodID GC_addIfMissing;
     jmethodID RubyArray_toJavaArray_method;
     jmethodID RubyClass_newClass_method;
     jmethodID Ruby_defineClass_method;
@@ -271,6 +272,8 @@ loadIds(JNIEnv* env)
             "(Lorg/jruby/Ruby;J)Lorg/jruby/RubyNumeric;");
 
     GC_trigger = getStaticMethodID(env, GC_class, "trigger", "()V");
+    GC_addIfMissing = getStaticMethodID(env, GC_class, "addIfMissing",
+            "(Lorg/jruby/Ruby;Lorg/jruby/runtime/builtin/IRubyObject;J)V");
     Handle_nativeHandle = getStaticMethodID(env, Handle_class, "nativeHandle",
             "(Lorg/jruby/runtime/builtin/IRubyObject;)J");
 

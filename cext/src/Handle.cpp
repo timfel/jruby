@@ -217,6 +217,8 @@ jruby::valueToObject(JNIEnv* env, VALUE v)
     Handle* h = Handle::valueOf(v);
     // FIXME: Sometimes h will not be a pointer here, and segfault on the next line
     if (likely((h->flags & FL_WEAK) == 0)) {
+        // Re-add the object to the object -> handle map, in case a GC run has cleared it
+        env->CallStaticVoidMethod(GC_class, GC_addIfMissing, getRuntime(), h->obj, h);
         return h->obj;
     }
 

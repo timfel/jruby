@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.jruby.Ruby;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.threading.DaemonThreadFactory;
 import org.jruby.util.SoftReferenceReaper;
@@ -51,16 +52,6 @@ public class GC {
     private static volatile Reference<Object> reaper = null;
     private static Runnable gcTask;
     private static volatile Future<?> gcFuture;
-
-    /**
-     * This is an upcall from the C++ stub to mark objects that are only strongly
-     * reachable from a C VALUE instance.
-     *
-     * @param obj The object to mark
-     */
-
-    public static final void mark(IRubyObject obj) {
-    }
 
     public static final void trigger() {
         if (gcFuture == null || gcFuture.isDone()) {
@@ -87,6 +78,12 @@ public class GC {
 
     static final Handle lookup(IRubyObject obj) {
         return nativeHandles.get(obj);
+    }
+
+    public static final void addIfMissing(Ruby runtime, IRubyObject obj, long nativeHandle) {
+        if (nativeHandles.get(obj) == null) {
+            nativeHandles.put(obj, Handle.newHandle(runtime, obj, nativeHandle));
+        }
     }
 
     /**

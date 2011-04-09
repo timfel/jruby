@@ -97,6 +97,7 @@ namespace jruby {
     extern jmethodID RubySymbol_getSymbolLong;
     extern jmethodID RubyStruct_newInstance;
     extern jmethodID GC_trigger;
+    extern jmethodID GC_addIfMissing;
     extern jmethodID Handle_nativeHandle;
     extern jmethodID RubyObject_getNativeTypeIndex_method;
     extern jmethodID JRuby_callMethod;
