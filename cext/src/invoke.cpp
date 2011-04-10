@@ -36,6 +36,7 @@
 #include "ruby.h"
 #include "jruby.h"
 #include "Handle.h"
+#include "JLocalEnv.h"
 #include "JUtil.h"
 #include "JavaException.h"
 #include "org_jruby_cext_Native.h"
@@ -77,6 +78,12 @@ public:
             if (unlikely(!TAILQ_EMPTY(&nsyncq))) {
                 clearSyncQueue(&nsyncq);
             }
+        }
+
+        if (allocCount > 1000) {
+            allocCount = 0;
+            JLocalEnv env;
+            env->CallStaticVoidMethod(GC_class, GC_trigger);
         }
     }
 };

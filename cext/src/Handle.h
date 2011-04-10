@@ -41,6 +41,9 @@
 extern "C" {
 #endif
 
+extern int allocCount;
+#define GC_THRESHOLD 10000
+
 namespace jruby {
 
     class Handle;

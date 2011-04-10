@@ -46,8 +46,7 @@ DataSyncQueue jruby::nsyncq = TAILQ_HEAD_INITIALIZER(nsyncq);
 DataSyncQueue jruby::jsyncq = TAILQ_HEAD_INITIALIZER(jsyncq);
 DataSyncQueue jruby::cleanq = TAILQ_HEAD_INITIALIZER(cleanq);
 
-static int allocCount;
-static const int GC_THRESHOLD = 10000;
+int allocCount;
 
 Handle::Handle()
 {
@@ -76,11 +75,7 @@ Handle::Init()
     setType(T_NONE);
     TAILQ_INSERT_TAIL(&liveHandles, this, all);
 
-    if (++allocCount > GC_THRESHOLD) {
-        allocCount = 0;
-        JLocalEnv env;
-        env->CallStaticVoidMethod(GC_class, GC_trigger);
-    }
+    allocCount++;
 }
 
 Handle*
