@@ -210,18 +210,18 @@ jruby::valueToObject(JNIEnv* env, VALUE v)
     }
 
     Handle* h = Handle::valueOf(v);
+    jobject obj;
     // FIXME: Sometimes h will not be a pointer here, and segfault on the next line
     if (likely((h->flags & FL_WEAK) == 0)) {
-        // Re-add the object to the object -> handle map, in case a GC run has cleared it
-        env->CallStaticVoidMethod(GC_class, GC_addIfMissing, getRuntime(), h->obj, h);
-        return h->obj;
+        obj = h->obj;
+    } else {
+        obj = env->NewLocalRef(h->obj);
+        if (unlikely(env->IsSameObject(obj, NULL))) {
+            rb_raise(rb_eRuntimeError, "weak handle is null");
+        }
     }
-
-    jobject obj = env->NewLocalRef(h->obj);
-    if (unlikely(env->IsSameObject(obj, NULL))) {
-        rb_raise(rb_eRuntimeError, "weak handle is null");
-    }
-
+    // Re-add the object to the object -> handle map, in case a GC run has cleared it
+    env->CallStaticVoidMethod(GC_class, GC_addIfMissing, getRuntime(), h->obj, h);
     return obj;
 }
 
